@@ -1,0 +1,6 @@
+[submodule "references/cal.com"]
+	path = references/cal.com
+	url = https://github.com/calcom/cal.com
+[submodule "references/supabase"]
+	path = references/supabase
+	url = https://github.com/supabase/supabase
