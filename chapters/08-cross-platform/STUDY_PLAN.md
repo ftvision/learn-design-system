@@ -9,8 +9,8 @@ Different platforms have different ways of defining design values:
 | Platform | Format | Example |
 |----------|--------|---------|
 | Web | CSS Variables | `--color-primary: #3B82F6;` |
-| iOS | Swift | `static let primary = Color(hex: "3B82F6")` |
-| Android | XML | `<color name="primary">#3B82F6</color>` |
+| iOS | Swift | `static let primary = UIColor(red: 0.23, ...)` |
+| Android | XML | `<color name="primary">#FF3B82F6</color>` |
 | React Native | JS Object | `primary: '#3B82F6'` |
 
 Without automation, you'd maintain 4 separate files manually. Style Dictionary solves this.
@@ -38,281 +38,159 @@ Style Dictionary has built-in transform groups:
 | Group | Transforms Applied |
 |-------|-------------------|
 | `css` | Name to kebab-case, colors to hex |
-| `ios` | Name to camelCase, colors to UIColor |
+| `ios-swift-separate` | Name to camelCase, colors to UIColor |
 | `android` | Name to snake_case, colors to 8-digit hex |
 | `js` | Name to camelCase, keep values as strings |
 
----
+### 1.4 Single Source of Truth
 
-## Part 2: Lab - Configure Multi-Platform Build (45 minutes)
-
-### Lab 8.1: Update Style Dictionary Config
-
-Update `packages/tokens/style-dictionary.config.js`:
-
-```javascript
-module.exports = {
-  source: ["src/**/*.json"],
-  platforms: {
-    // CSS (already have this)
-    css: {
-      transformGroup: "css",
-      buildPath: "build/css/",
-      files: [
-        {
-          destination: "variables.css",
-          format: "css/variables",
-        },
-      ],
-    },
-
-    // JavaScript ES6
-    js: {
-      transformGroup: "js",
-      buildPath: "build/js/",
-      files: [
-        {
-          destination: "tokens.js",
-          format: "javascript/es6",
-        },
-      ],
-    },
-
-    // TypeScript (for React Native)
-    ts: {
-      transformGroup: "js",
-      buildPath: "build/ts/",
-      files: [
-        {
-          destination: "tokens.ts",
-          format: "javascript/es6",
-        },
-        {
-          destination: "tokens.d.ts",
-          format: "typescript/es6-declarations",
-        },
-      ],
-    },
-
-    // iOS Swift
-    ios: {
-      transformGroup: "ios-swift-separate",
-      buildPath: "build/ios/",
-      files: [
-        {
-          destination: "Colors.swift",
-          format: "ios-swift/enum.swift",
-          className: "Colors",
-          filter: {
-            type: "color",
-          },
-        },
-        {
-          destination: "Spacing.swift",
-          format: "ios-swift/enum.swift",
-          className: "Spacing",
-          filter: {
-            type: "dimension",
-          },
-        },
-        {
-          destination: "Typography.swift",
-          format: "ios-swift/enum.swift",
-          className: "Typography",
-          filter: (token) =>
-            token.path[0] === "font" &&
-            (token.path[1] === "size" || token.path[1] === "weight"),
-        },
-      ],
-    },
-
-    // Android
-    android: {
-      transformGroup: "android",
-      buildPath: "build/android/",
-      files: [
-        {
-          destination: "colors.xml",
-          format: "android/colors",
-          filter: {
-            type: "color",
-          },
-        },
-        {
-          destination: "dimens.xml",
-          format: "android/dimens",
-          filter: {
-            type: "dimension",
-          },
-        },
-        {
-          destination: "font_sizes.xml",
-          format: "android/fontDimens",
-          filter: (token) => token.path[0] === "font" && token.path[1] === "size",
-        },
-      ],
-    },
-  },
-};
+```
+tokens/src/colors.json  ─────┐
+tokens/src/spacing.json ─────┼──► Style Dictionary ──► build/css/
+tokens/src/typography.json ──┘                    ──► build/ios/
+                                                  ──► build/android/
+                                                  ──► build/ts/
 ```
 
-### Lab 8.2: Add Type Attribute to Tokens
-
-Update your token files to include `type` for proper filtering:
-
-Update `packages/tokens/src/colors.json`:
-
-```json
-{
-  "color": {
-    "primary": {
-      "500": { "value": "#3B82F6", "type": "color" },
-      "600": { "value": "#2563EB", "type": "color" }
-    }
-  }
-}
-```
-
-Update `packages/tokens/src/spacing.json`:
-
-```json
-{
-  "spacing": {
-    "sm": { "value": "8px", "type": "dimension" },
-    "md": { "value": "16px", "type": "dimension" },
-    "lg": { "value": "24px", "type": "dimension" }
-  }
-}
-```
-
-### Lab 8.3: Build All Platforms
-
-```bash
-cd packages/tokens
-npm run build
-```
-
-### Lab 8.4: Examine the Output
-
-```bash
-# View iOS output
-cat build/ios/Colors.swift
-
-# View Android output
-cat build/android/colors.xml
-
-# View TypeScript output
-cat build/ts/tokens.ts
-```
+Change once, update everywhere.
 
 ---
 
-## Part 3: Lab - Understand the Generated Files (30 minutes)
+## Part 2: Labs
 
-### Lab 8.5: iOS Swift Output
+### Lab 8.1: Configure Multi-Platform Build (~30 minutes)
 
-The generated `Colors.swift` looks like:
+**Objective:** Configure Style Dictionary to generate tokens for CSS, JS, TypeScript, iOS, and Android.
 
-```swift
-// Colors.swift
-// Generated by Style Dictionary
+**Topics:**
+- Platform configuration in Style Dictionary
+- Transform groups and their effects
+- Build path organization
 
-import UIKit
+**Key Concepts:**
+- Single source of truth
+- Platform-specific formatting
+- Filter functions for token selection
 
-public enum Colors {
-    public static let colorPrimary500 = UIColor(red: 0.231, green: 0.510, blue: 0.965, alpha: 1.0)
-    public static let colorPrimary600 = UIColor(red: 0.145, green: 0.388, blue: 0.922, alpha: 1.0)
-}
-```
-
-**Usage in iOS:**
-```swift
-// In a SwiftUI view
-Button("Submit") {
-    // action
-}
-.background(Colors.colorPrimary500)
-
-// In UIKit
-button.backgroundColor = Colors.colorPrimary500
-```
-
-### Lab 8.6: Android XML Output
-
-The generated `colors.xml` looks like:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- colors.xml -->
-<!-- Generated by Style Dictionary -->
-<resources>
-  <color name="color_primary_500">#FF3B82F6</color>
-  <color name="color_primary_600">#FF2563EB</color>
-</resources>
-```
-
-**Usage in Android:**
-```xml
-<!-- In layout XML -->
-<Button
-    android:background="@color/color_primary_500"
-    android:text="Submit" />
-```
-
-```kotlin
-// In Kotlin
-button.setBackgroundColor(ContextCompat.getColor(context, R.color.color_primary_500))
-```
-
-### Lab 8.7: React Native Usage
-
-For React Native, use the TypeScript output:
-
-```tsx
-// In a React Native component
-import { tokens } from '@myapp/tokens';
-
-const styles = StyleSheet.create({
-  button: {
-    backgroundColor: tokens.color.primary[500],
-    padding: tokens.spacing.md,
-  },
-});
-```
+[→ Go to Lab 8.1](./labs/lab8.1/README.md)
 
 ---
 
-## Part 4: Lab - Study IBM Carbon (30 minutes)
+### Lab 8.2: Add Token Types & Build (~25 minutes)
 
-### Lab 8.8: Clone and Explore Carbon
+**Objective:** Add type attributes to tokens for filtering and build all platform outputs.
 
-IBM Carbon is the best open-source example of cross-platform tokens:
+**Topics:**
+- Token type attribute
+- Type-based filtering
+- Running multi-platform build
 
-```bash
-git clone https://github.com/carbon-design-system/carbon
-cd carbon
-```
+**Key Concepts:**
+- Why types enable filtering
+- Build process overview
+- Verifying build output
 
-Find their token definitions:
-```bash
-ls packages/colors/
-ls packages/themes/
-```
-
-### Lab 8.9: Analyze Their Approach
-
-**Questions to answer:**
-1. How do they structure their token files?
-2. What platforms do they generate for?
-3. How do they handle theming across platforms?
+[→ Go to Lab 8.2](./labs/lab8.2/README.md)
 
 ---
 
-## Part 5: Reflection (10 minutes)
+### Lab 8.3: iOS Swift Output (~25 minutes)
+
+**Objective:** Understand generated iOS Swift files and native iOS usage patterns.
+
+**Topics:**
+- UIColor format and RGB values
+- Swift enum structure
+- SwiftUI and UIKit usage
+
+**Key Concepts:**
+- iOS color representation
+- CGFloat for dimensions
+- Integration workflow
+
+[→ Go to Lab 8.3](./labs/lab8.3/README.md)
+
+---
+
+### Lab 8.4: Android XML Output (~25 minutes)
+
+**Objective:** Understand Android XML resources and React Native token usage.
+
+**Topics:**
+- Android resources XML format
+- 8-digit hex with alpha
+- Layout XML and Kotlin usage
+- React Native StyleSheet
+
+**Key Concepts:**
+- Android resource system
+- Density-independent pixels
+- Cross-platform comparison
+
+[→ Go to Lab 8.4](./labs/lab8.4/README.md)
+
+---
+
+### Lab 8.5: Study Carbon & Reflection (~25 minutes)
+
+**Objective:** Study IBM Carbon's approach and reflect on cross-platform strategies.
+
+**Topics:**
+- IBM Carbon repository exploration
+- Alternative tools comparison
+- Written reflection
+
+**Key Concepts:**
+- Real-world token architecture
+- Extension strategies
+- Dark theme handling
+
+[→ Go to Lab 8.5](./labs/lab8.5/README.md)
+
+---
+
+## Part 3: Self-Check & Reflection
+
+### Files You Should Have
+
+```
+packages/tokens/
+├── src/
+│   ├── colors.json
+│   ├── spacing.json
+│   └── typography.json
+├── build/
+│   ├── css/
+│   │   └── variables.css
+│   ├── js/
+│   │   └── tokens.js
+│   ├── ts/
+│   │   ├── tokens.ts
+│   │   └── tokens.d.ts
+│   ├── ios/
+│   │   ├── Colors.swift
+│   │   ├── Spacing.swift
+│   │   └── Typography.swift
+│   └── android/
+│       ├── colors.xml
+│       ├── dimens.xml
+│       └── font_sizes.xml
+└── style-dictionary.config.js
+```
+
+### Self-Check
+
+Before moving to Chapter 9, verify:
+
+- [ ] Style Dictionary generates iOS Swift files
+- [ ] Style Dictionary generates Android XML files
+- [ ] TypeScript output works for React Native
+- [ ] You understand how native apps consume these files
+- [ ] You explored IBM Carbon's token approach
 
 ### Written Reflection
 
-1. **Why generate tokens for multiple platforms instead of just copying values?**
+1. **Why generate tokens for multiple platforms instead of copying values?**
    ```
 
 
@@ -329,40 +207,6 @@ ls packages/themes/
 
 
    ```
-
----
-
-## Part 6: Self-Check
-
-Before moving to Chapter 9, verify:
-
-- [ ] Style Dictionary generates iOS Swift files
-- [ ] Style Dictionary generates Android XML files
-- [ ] You understand how native apps consume these files
-- [ ] You explored IBM Carbon's token approach
-
----
-
-## Files You Should Have
-
-```
-packages/tokens/build/
-├── css/
-│   └── variables.css
-├── js/
-│   └── tokens.js
-├── ts/
-│   ├── tokens.ts
-│   └── tokens.d.ts
-├── ios/
-│   ├── Colors.swift
-│   ├── Spacing.swift
-│   └── Typography.swift
-└── android/
-    ├── colors.xml
-    ├── dimens.xml
-    └── font_sizes.xml
-```
 
 ---
 
@@ -391,4 +235,20 @@ StyleDictionary.registerFormat({
 
 ### Exercise 8.2: Add Dark Theme for Mobile
 
-Create separate dark theme files for iOS/Android by filtering semantic tokens with a theme attribute.
+Create separate dark theme files for iOS/Android:
+1. Add dark token values with theme attribute
+2. Filter tokens by theme
+3. Generate platform-specific dark mode resources
+
+### Exercise 8.3: Token Documentation Generator
+
+Create a documentation format that outputs:
+- Token name and value
+- Platform-specific usage examples
+- Visual color swatches
+
+---
+
+## Next Chapter
+
+In Chapter 9, you'll learn about versioning and publishing your design system packages.
