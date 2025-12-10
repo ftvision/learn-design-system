@@ -1,6 +1,6 @@
-# Design System Starter
+# App Starter Kit
 
-Copy this folder to bootstrap a design system with AI coding agents.
+Bootstrap a new web app with a solid design system foundation using AI coding agents.
 
 ## Contents
 
@@ -31,15 +31,15 @@ Copy this folder to bootstrap a design system with AI coding agents.
 2. **Navigate to your target directory**
    ```bash
    cd /path/to/your/projects
-   mkdir my-design-system
-   cd my-design-system
+   mkdir my-app
+   cd my-app
    ```
 
 3. **Copy the entire prompt** from `AI_AGENT_PROMPT.md` (everything inside the code block under "## The Prompt")
 
 4. **Paste to your AI agent** with a prefix like:
    ```
-   Please execute the following instructions to bootstrap a design system:
+   Please execute the following instructions to bootstrap my new web app:
 
    [paste prompt here]
    ```
@@ -60,13 +60,13 @@ Copy this folder to bootstrap a design system with AI coding agents.
 ### What You Get
 
 ```
-my-design-system/
+my-app/
 ├── packages/
 │   ├── tokens/     # Design tokens (JSON → CSS/JS)
 │   ├── ui/         # Button component + extension guide
 │   └── config/     # Shared TypeScript & Tailwind configs
 ├── apps/
-│   ├── web/        # Next.js demo app
+│   ├── web/        # Next.js web app
 │   └── docs/       # Storybook documentation
 └── [configs]       # turbo.json, pnpm-workspace.yaml, etc.
 ```
